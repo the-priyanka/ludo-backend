@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'UserCircleIcon',
   },
+  coins: {
+    type: Number,
+    default: 50000, // Default starting coins
+  },
   createdAt: {
     type: Date,
     default: Date.now,

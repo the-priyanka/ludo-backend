@@ -38,6 +38,7 @@ exports.register = async (req, res) => {
         _id: user._id,
         username: user.username,
         email: user.email,
+        coins: user.coins,
         token: generateToken(user._id),
       });
     } else {
@@ -82,6 +83,7 @@ exports.login = async (req, res) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      coins: user.coins,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -94,7 +96,7 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.updateProfile = async (req, res) => {
   try {
-    const { username, avatar } = req.body;
+    const { username, avatar, coins } = req.body;
     
     // Find user by ID (from protect middleware)
     const user = await User.findById(req.user._id);
@@ -105,6 +107,7 @@ exports.updateProfile = async (req, res) => {
 
     if (username) user.username = username;
     if (avatar) user.avatar = avatar;
+    if (coins !== undefined) user.coins = coins;
 
     const updatedUser = await user.save();
 
@@ -114,7 +117,8 @@ exports.updateProfile = async (req, res) => {
         _id: updatedUser._id,
         username: updatedUser.username,
         email: updatedUser.email,
-        avatar: updatedUser.avatar
+        avatar: updatedUser.avatar,
+        coins: updatedUser.coins
       }
     });
   } catch (error) {
