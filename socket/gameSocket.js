@@ -8,36 +8,66 @@ function initSocket(server) {
     },
   });
 
-  const matchQueue = [];
+  const matchQueue2p = [];
+  const matchQueue4p = [];
   const rooms = new Map();
 
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
     socket.on('join_matchmaking', (data) => {
-      // Very basic matchmaking for 2 players
-      matchQueue.push({ socket, data });
-      if (matchQueue.length >= 2) {
-        const player1 = matchQueue.shift();
-        const player2 = matchQueue.shift();
+      const { playerCount, userData } = data; // playerCount is 2 or 4
+      
+      if (playerCount === 4) {
+        matchQueue4p.push({ socket, userData });
+        if (matchQueue4p.length >= 4) {
+          const players = [];
+          const roomId = `room_${Date.now()}`;
+          for (let i = 1; i <= 4; i++) {
+            const p = matchQueue4p.shift();
+            p.socket.join(roomId);
+            players.push({ id: p.socket.id, playerNo: i, userData: p.userData });
+          }
 
-        const roomId = `room_${Date.now()}`;
-        player1.socket.join(roomId);
-        player2.socket.join(roomId);
+          const roomState = {
+            roomId,
+            players,
+            activePlayersList: [1, 2, 3, 4]
+          };
+          rooms.set(roomId, roomState);
+          io.to(roomId).emit('match_found', roomState);
+        }
+      } else {
+        // Default to 2 players
+        matchQueue2p.push({ socket, userData });
+        if (matchQueue2p.length >= 2) {
+          const p1 = matchQueue2p.shift();
+          const p2 = matchQueue2p.shift();
 
-        const roomState = {
-          roomId,
-          players: [
-            { id: player1.socket.id, playerNo: 1 },
-            { id: player2.socket.id, playerNo: 2 }
-          ],
-          activePlayersList: [1, 2] // Assuming 2 player mode for now
-        };
-        rooms.set(roomId, roomState);
+          const roomId = `room_${Date.now()}`;
+          p1.socket.join(roomId);
+          p2.socket.join(roomId);
 
-        // Notify players
-        io.to(roomId).emit('match_found', roomState);
+          const roomState = {
+            roomId,
+            players: [
+              { id: p1.socket.id, playerNo: 1, userData: p1.userData },
+              { id: p2.socket.id, playerNo: 3, userData: p2.userData } // Player 1 (Red) vs Player 3 (Yellow)
+            ],
+            activePlayersList: [1, 3]
+          };
+          rooms.set(roomId, roomState);
+          io.to(roomId).emit('match_found', roomState);
+        }
       }
+    });
+
+    socket.on('leave_matchmaking', () => {
+      const q2Index = matchQueue2p.findIndex(p => p.socket.id === socket.id);
+      if (q2Index !== -1) matchQueue2p.splice(q2Index, 1);
+      
+      const q4Index = matchQueue4p.findIndex(p => p.socket.id === socket.id);
+      if (q4Index !== -1) matchQueue4p.splice(q4Index, 1);
     });
 
     // Create private room
@@ -84,9 +114,13 @@ function initSocket(server) {
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
       // Remove from queue if in matchmaking
-      const qIndex = matchQueue.findIndex(p => p.socket.id === socket.id);
-      if (qIndex !== -1) {
-        matchQueue.splice(qIndex, 1);
+      const q2Index = matchQueue2p.findIndex(p => p.socket.id === socket.id);
+      if (q2Index !== -1) {
+        matchQueue2p.splice(q2Index, 1);
+      }
+      const q4Index = matchQueue4p.findIndex(p => p.socket.id === socket.id);
+      if (q4Index !== -1) {
+        matchQueue4p.splice(q4Index, 1);
       }
 
       // If in a room, notify other players (forfeit)
