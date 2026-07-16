@@ -77,7 +77,7 @@ function initSocket(server) {
       const roomState = {
         roomId,
         players: [{ id: socket.id, playerNo: 1 }],
-        activePlayersList: [1, 2] // Defaults to 2 player for private room in MVP
+        activePlayersList: [1, 3] // Player 1 (Red) vs Player 3 (Yellow), consistent with quick match
       };
       rooms.set(roomId, roomState);
       callback({ success: true, roomId, roomState });
@@ -88,7 +88,8 @@ function initSocket(server) {
       const room = rooms.get(roomId);
       if (room) {
         if (room.players.length < 2) { // Allow up to 2 for now, can extend to 4
-          const playerNo = room.players.length + 1;
+          // Assign playerNo 3 (Yellow) as the second player in 2-player private room
+          const playerNo = 3;
           socket.join(roomId);
           room.players.push({ id: socket.id, playerNo });
           
