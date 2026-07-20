@@ -31,7 +31,9 @@ app.get('/', (req, res) => {
 });
 
 // Initialize Socket.io
-initSocket(server);
+const io = initSocket(server);
+const initChessSocket = require('./socket/chessSocket');
+initChessSocket(io);
 
 const PORT = process.env.PORT || 5000;
 
